@@ -1,0 +1,12 @@
+# To build it:
+#  `docker build -t codenvy/che-launcher -f Dockerfile.launcher .`
+# To use it:
+#  `docker run --rm \
+#       -v /var/run/docker.sock:/var/run/docker.sock \
+#        codenvy/che-launcher [start|stop|restart|update]
+FROM docker:1.11
+
+COPY /assembly/assembly-main/src/assembly/bin/launcher.sh /bin/launcher.sh
+RUN chmod +x /bin/launcher.sh
+
+ENTRYPOINT ["bin/launcher.sh"]
