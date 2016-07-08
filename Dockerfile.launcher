@@ -7,6 +7,5 @@
 FROM docker:1.11
 
 COPY /assembly/assembly-main/src/assembly/bin/launcher.sh /bin/launcher.sh
-RUN chmod +x /bin/launcher.sh
 
 ENTRYPOINT ["bin/launcher.sh"]

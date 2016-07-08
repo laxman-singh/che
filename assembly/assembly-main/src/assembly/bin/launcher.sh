@@ -2,9 +2,6 @@
 
 # See: https://sipb.mit.edu/doc/safe-shell/
 set -e
-#set +o posix
-
-# Run the finish function if exit signal initiated
 trap exit SIGHUP SIGINT SIGTERM
 
 init_global_variables () {
@@ -17,11 +14,12 @@ init_global_variables () {
   ### Define various error and usage messages
   USAGE="
 Usage:
-  launcher [COMMAND]
+  `basename "$0"` [COMMAND]
      start                              Starts Che server in new console
      stop                               Stops Che server
      restart                            Restart Che server
-     update                             Pull latest version of codenvy/che
+     update                             Pull latest version of codenvy/che (restart
+                                        is needed to complete update)
 
 Docs: http://eclipse.org/che/getting-started.
 "
@@ -48,7 +46,7 @@ error_exit () {
   echo
 }
 
-get_docker_host_ip() {
+find_docker_host_ip() {
   DOCKER_HOST_IP=$(docker run --rm --net host \
                     alpine sh -c \
                     "ip a show eth0" | \
@@ -64,30 +62,27 @@ parse_command_line () {
     return
   fi
 
-  for command_line_option in "$@"
-  do
-  case ${command_line_option} in
-    start|stop|restart|update)
-      CHE_SERVER_ACTION=${command_line_option}
-    ;;
-    -h|--help)
-      USE_HELP=true
-      usage
-      return
-    ;;
-    *)
-      # unknown option
-      error_exit "You passed an unknown command line option."
-      return
-    ;;
-  esac
-
+  for command_line_option in "$@"; do
+    case ${command_line_option} in
+      start|stop|restart|update)
+        CHE_SERVER_ACTION=${command_line_option}
+      ;;
+      -h|--help)
+        usage
+        return
+      ;;
+      *)
+        # unknown option
+        error_exit "You passed an unknown command line option."
+        return
+      ;;
+    esac
   done
 }
 
 
 launch_che_server() {
-  docker run --name che \
+  docker run -d --name che \
     -v $DOCKER_SOCKET:$DOCKER_SOCKET \
     -v $CHE_LIB_VOLUME_PATH:/home/user/che/lib-copy \
     -v $CHE_WS_VOLUME_PATH:$CHE_WS_VOLUME_PATH \
@@ -113,14 +108,19 @@ update_che_server() {
 
 init_global_variables
 parse_command_line "$@"
-get_docker_host_ip
+find_docker_host_ip
 
-if [ "${CHE_SERVER_ACTION}" == "start" ]; then
-  launch_che_server
-elif [ "${CHE_SERVER_ACTION}" == "stop" ]; then
-  stop_che_server
-elif [ "${CHE_SERVER_ACTION}" == "restart" ]; then
-  restart_che_server
-elif [ "${CHE_SERVER_ACTION}" == "update" ]; then
-  update_che_server
-fi
+case ${CHE_SERVER_ACTION} in
+  start)
+    launch_che_server
+  ;;
+  stop)
+    stop_che_server
+  ;;
+  restart)
+    restart_che_server
+  ;;
+  update)
+    update_che_server
+  ;;
+esac
