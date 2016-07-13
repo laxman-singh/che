@@ -28,6 +28,7 @@ import org.eclipse.che.ide.api.parts.PropertyListener;
 import org.eclipse.che.ide.api.parts.base.BasePresenter;
 import org.eclipse.che.ide.part.widgets.TabItemFactory;
 import org.eclipse.che.ide.part.widgets.partbutton.PartButton;
+import org.eclipse.che.ide.util.loging.Log;
 import org.eclipse.che.ide.workspace.WorkBenchPartController;
 
 import javax.validation.constraints.NotNull;
@@ -176,6 +177,7 @@ public class PartStackPresenter implements Presenter, PartStackView.ActionDelega
     /** {@inheritDoc} */
     @Override
     public boolean containsPart(PartPresenter part) {
+//        Log.error(getClass(), "//// part stack presenter //// " + parts.values().contains(part));
         return parts.values().contains(part);
     }
 
@@ -199,7 +201,7 @@ public class PartStackPresenter implements Presenter, PartStackView.ActionDelega
     }
 
     @Nullable
-    protected TabItem getTabByPart(@NotNull PartPresenter part) {
+    public TabItem getTabByPart(@NotNull PartPresenter part) {
         for (Map.Entry<TabItem, PartPresenter> entry : parts.entrySet()) {
 
             if (part.equals(entry.getValue())) {
@@ -258,12 +260,14 @@ public class PartStackPresenter implements Presenter, PartStackView.ActionDelega
     /** {@inheritDoc} */
     @Override
     public void onRequestFocus() {
+//        Log.error(getClass(), "==== onRequestFocus");
         partStackHandler.onRequestFocus(PartStackPresenter.this);
     }
 
     /** {@inheritDoc} */
     @Override
     public void setFocus(boolean focused) {
+//        Log.error(getClass(), "==== setFocus");
         view.setFocus(focused);
     }
 

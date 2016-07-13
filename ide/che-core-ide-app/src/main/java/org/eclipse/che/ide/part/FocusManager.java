@@ -20,6 +20,7 @@ import org.eclipse.che.ide.api.parts.Focusable;
 import org.eclipse.che.ide.api.parts.PartPresenter;
 import org.eclipse.che.ide.api.parts.PartStack;
 import org.eclipse.che.ide.part.PartStackPresenter.PartStackEventHandler;
+import org.eclipse.che.ide.util.loging.Log;
 
 
 /**
@@ -53,7 +54,9 @@ public class FocusManager {
         this.partStackHandler = new PartStackEventHandler() {
             @Override
             public void onRequestFocus(PartStack partStack) {
+
                 if (partStack == null || partStack.getActivePart() == null) {
+//                    Log.error(getClass(), "/////////// partStack" + partStack);
                     return;
                 }
 

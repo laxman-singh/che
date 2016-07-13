@@ -218,6 +218,7 @@ public class OrionEditorWidget extends CompositeEditorWidget implements HasChang
 
     @Override
     public String getValue() {
+        Log.error(getClass(), "***************" + editorOverlay.getText());
         return editorOverlay.getText();
     }
 

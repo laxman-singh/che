@@ -8,38 +8,36 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.che.ide.part.editor;
+package org.eclipse.che.ide.part.editor.multipart;
 
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.dom.client.Style;
 import com.google.gwt.event.dom.client.MouseDownEvent;
 import com.google.gwt.event.dom.client.MouseDownHandler;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
-import com.google.gwt.user.client.ui.DeckLayoutPanel;
 import com.google.gwt.user.client.ui.DockLayoutPanel;
-import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.IsWidget;
 import com.google.gwt.user.client.ui.ResizeComposite;
+import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
-import org.eclipse.che.ide.api.editor.texteditor.TextEditorPresenter;
+import org.eclipse.che.ide.api.constraints.Constraints;
 import org.eclipse.che.ide.api.parts.PartPresenter;
+import org.eclipse.che.ide.api.parts.PartStack;
 import org.eclipse.che.ide.api.parts.PartStackUIResources;
-import org.eclipse.che.ide.api.parts.PartStackView;
 import org.eclipse.che.ide.part.widgets.listtab.ListButton;
 import org.eclipse.che.ide.util.loging.Log;
 
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.gwt.dom.client.Style.Display.BLOCK;
-import static com.google.gwt.dom.client.Style.Display.NONE;
 import static com.google.gwt.dom.client.Style.Unit.PCT;
 
 /**
@@ -47,9 +45,11 @@ import static com.google.gwt.dom.client.Style.Unit.PCT;
  * @author Dmitry Shnurenko
  * @author Vitaliy Guliy
  */
-public class EditorPartStackView extends ResizeComposite implements PartStackView, MouseDownHandler {
+public class EditorMultiPartStackViewImpl extends ResizeComposite implements EditorMultiPartStackView, MouseDownHandler {
+    private final static String VERTICAL_DRAGGER_CLASS            = "gwt-SplitLayoutPanel-VDragger";
+    private final static String HORIZONTAL_DRAGGER_CLASS          = "gwt-SplitLayoutPanel-HDragger";
 
-    interface PartStackUiBinder extends UiBinder<Widget, EditorPartStackView> {
+    interface PartStackUiBinder extends UiBinder<Widget, EditorMultiPartStackViewImpl> {
     }
 
     private static final PartStackUiBinder UI_BINDER = GWT.create(PartStackUiBinder.class);
@@ -58,34 +58,33 @@ public class EditorPartStackView extends ResizeComposite implements PartStackVie
     DockLayoutPanel parent;
 
     @UiField
-    FlowPanel       tabsPanel;
+    SplitLayoutPanel contentPanel;
 
-    @UiField
-    DeckLayoutPanel contentPanel;
+    SplitLayoutPanel parentContainer;
 
-    private final Map<PartPresenter, TabItem> tabs;
-    private final AcceptsOneWidget            partViewContainer;
-    private final LinkedList<PartPresenter>   contents;
-    private final PartStackUIResources        resources;
+    private final Map<PartPresenter, TabItem>         tabs;
+    private final Map<PartStack, SplitEditorPartView> splitEditorParts;
+    private       AcceptsOneWidget                    partViewContainer;
+    private final LinkedList<PartPresenter>           contents;
+    private final PartStackUIResources                resources;
+    private final SplitEditorPartFactory              splitEditorPartFactory;
+
+    List<IsWidget> widgets = new ArrayList<>();
 
     private ActionDelegate delegate;
     private ListButton     listButton;
     private TabItem        activeTab;
 
     @Inject
-    public EditorPartStackView(PartStackUIResources resources) {
+    public EditorMultiPartStackViewImpl(PartStackUIResources resources, SplitEditorPartFactory splitEditorPartFactory) {
         this.resources = resources;
+        this.splitEditorPartFactory = splitEditorPartFactory;
         this.tabs = new HashMap<>();
+        this.splitEditorParts = new HashMap<>();
         this.contents = new LinkedList<>();
 
         initWidget(UI_BINDER.createAndBindUi(this));
 
-        partViewContainer = new AcceptsOneWidget() {
-            @Override
-            public void setWidget(IsWidget widget) {
-                contentPanel.add(widget);
-            }
-        };
 
         addDomHandler(this, MouseDownEvent.getType());
     }
@@ -95,21 +94,9 @@ public class EditorPartStackView extends ResizeComposite implements PartStackVie
     protected void onAttach() {
         super.onAttach();
 
-        Style style = getElement().getParentElement().getStyle();
+        com.google.gwt.dom.client.Style style = getElement().getParentElement().getStyle();
         style.setHeight(100, PCT);
         style.setWidth(100, PCT);
-    }
-
-    /**
-     * Adds list button in special place on view.
-     *
-     * @param listButton
-     *         button which will be added
-     */
-    public void setListButton(@NotNull ListButton listButton) {
-        this.listButton = listButton;
-        tabsPanel.add(listButton);
-        listButton.setVisible(false);
     }
 
     /** {@inheritDoc} */
@@ -132,8 +119,8 @@ public class EditorPartStackView extends ResizeComposite implements PartStackVie
             getElement().getParentElement().getStyle().setDisplay(BLOCK);
         }
 
-        /** Add editor tab to tab panel */
-        tabsPanel.add(tabItem.getView());
+//        /** Add editor tab to tab panel */
+//        tabsPanel.add(tabItem.getView());
 
         /** Process added editor tab */
         tabs.put(partPresenter, tabItem);
@@ -141,13 +128,45 @@ public class EditorPartStackView extends ResizeComposite implements PartStackVie
         partPresenter.go(partViewContainer);
     }
 
-    /**
+    @Override
+    public void addPartStack(@NotNull final PartStack partStack, final PartStack specimenPartStack, final Constraints constraints) {
+        partViewContainer = new AcceptsOneWidget() {
+            @Override
+            public void setWidget(IsWidget widget) {
+                if (constraints == null) {
+//                    Log.error(getClass(), "***** constraints == null");
+                    SplitEditorPartView splitEditorPartView = splitEditorPartFactory.create(widget);
+                    splitEditorParts.put(partStack, splitEditorPartView);
+                    contentPanel.add(splitEditorPartView);
+                    return;
+                }
+
+                SplitEditorPartView specimenView = splitEditorParts.get(specimenPartStack);
+                if (specimenView == null) {
+//                    Log.error(getClass(), "Can not find container for specified editor");
+                    return;
+                }
+
+
+                specimenView.split(widget, constraints.direction);
+                splitEditorParts.put(partStack, specimenView.getReplica());
+                splitEditorParts.put(specimenPartStack, specimenView.getSpecimen());
+            }
+        };
+        partStack.go(partViewContainer);
+    }
+
+    @Override
+    public void removePartStack(@NotNull PartStack partStack) {
+        SplitEditorPartView splitEditorPartView = splitEditorParts.get(partStack);
+        splitEditorPartView.removeFromParent();
+        splitEditorParts.remove(partStack);
+    }
+
+        /**
      * Updates visibility of file list button.
      */
     private void updateDropdownVisibility() {
-//        Log.error(getClass(), "******* updateDropdownVisibility");
-        listButton.setVisible(false);
-
 //        if (tabsPanel.getWidgetCount() == 1) {
 //            listButton.setVisible(false);
 //            return;
@@ -165,7 +184,7 @@ public class EditorPartStackView extends ResizeComposite implements PartStackVie
 //                }
 //            }
 //        }
-//
+
 //        listButton.setVisible(width >= tabsPanel.getOffsetWidth());
     }
 
@@ -173,51 +192,54 @@ public class EditorPartStackView extends ResizeComposite implements PartStackVie
      * Makes active tab visible.
      */
     private void ensureActiveTabVisible() {
-        if (activeTab == null) {
-            return;
-        }
-
-        for (int i = 0; i < tabsPanel.getWidgetCount(); i++) {
-            if (listButton != null && listButton != tabsPanel.getWidget(i)) {
-                tabsPanel.getWidget(i).setVisible(true);
-            }
-        }
-
-        for (int i = 0; i < tabsPanel.getWidgetCount(); i++) {
-            if (listButton != null && listButton != tabsPanel.getWidget(i)) {
-                if (activeTab.getView().asWidget().getAbsoluteTop() > tabsPanel.getAbsoluteTop()) {
-                    tabsPanel.getWidget(i).setVisible(false);
-                }
-            }
-        }
+//        if (activeTab == null) {
+//            return;
+//        }
+//
+//        for (int i = 0; i < tabsPanel.getWidgetCount(); i++) {
+//            if (listButton != null && listButton != tabsPanel.getWidget(i)) {
+//                tabsPanel.getWidget(i).setVisible(true);
+//            }
+//        }
+//
+//        for (int i = 0; i < tabsPanel.getWidgetCount(); i++) {
+//            if (listButton != null && listButton != tabsPanel.getWidget(i)) {
+//                if (activeTab.getView().asWidget().getAbsoluteTop() > tabsPanel.getAbsoluteTop()) {
+//                    tabsPanel.getWidget(i).setVisible(false);
+//                }
+//            }
+//        }
     }
 
     /** {@inheritDoc} */
     @Override
     public void removeTab(@NotNull PartPresenter presenter) {
-        TabItem tab = tabs.get(presenter);
-        tabsPanel.remove(tab.getView());
-        contentPanel.remove(presenter.getView());
 
-        tabs.remove(presenter);
-        contents.remove(presenter);
 
-        if (contents.isEmpty()) {
-            getElement().getParentElement().getStyle().setDisplay(NONE);
-        } else {
-            selectTab(contents.getLast());
-        }
 
-        //this hack need to force redraw dom element to apply correct styles
-        tabsPanel.getElement().getStyle().setDisplay(NONE);
-        tabsPanel.getElement().getOffsetHeight();
-        tabsPanel.getElement().getStyle().setDisplay(BLOCK);
+
+//        TabItem tab = tabs.get(presenter);
+//        tabsPanel.remove(tab.getView());
+//        contentPanel.remove(presenter.getView());
+//
+//        tabs.remove(presenter);
+//        contents.remove(presenter);
+//
+//        if (contents.isEmpty()) {
+//            getElement().getParentElement().getStyle().setDisplay(NONE);
+//        } else {
+//            selectTab(contents.getLast());
+//        }
+//
+//        //this hack need to force redraw dom element to apply correct styles
+//        tabsPanel.getElement().getStyle().setDisplay(NONE);
+//        tabsPanel.getElement().getOffsetHeight();
+//        tabsPanel.getElement().getStyle().setDisplay(BLOCK);
     }
 
     /** {@inheritDoc} */
     @Override
     public void selectTab(@NotNull PartPresenter partPresenter) {
-//        Log.error(getClass(), "///////////// selectTab " + partPresenter.getTitle());
         IsWidget view = partPresenter.getView();
 
         int viewIndex = contentPanel.getWidgetIndex(view);
@@ -226,12 +248,8 @@ public class EditorPartStackView extends ResizeComposite implements PartStackVie
             viewIndex = contentPanel.getWidgetIndex(view);
         }
 
-        contentPanel.showWidget(viewIndex);
+//        contentPanel.showWidget(viewIndex);
         setActiveTab(partPresenter);
-
-        if (partPresenter instanceof TextEditorPresenter) {
-            ((TextEditorPresenter)partPresenter).activate();
-        }
     }
 
     /**
@@ -240,7 +258,6 @@ public class EditorPartStackView extends ResizeComposite implements PartStackVie
      * @param part tab part
      */
     private void setActiveTab(@NotNull PartPresenter part) {
-//        Log.error(getClass(), "**** setActiveTab");
         for (TabItem tab : tabs.values()) {
             tab.unSelect();
             tab.getView().asWidget().getElement().removeAttribute("active");
