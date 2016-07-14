@@ -1,11 +1,13 @@
 #!/bin/sh
 
-init_global_variables () {
-
+init_logging() {
   BLUE='\033[1;34m'
   GREEN='\033[0;32m'
   RED='\033[0;31m'
   NC='\033[0m'
+}
+
+init_global_variables() {
 
   CHE_SERVER_CONTAINER_NAME="che"
   CHE_SERVER_IMAGE_NAME="codenvy/che"
@@ -158,6 +160,18 @@ get_che_hostname() {
     echo get_docker_host_ip
   else
     echo "localhost"
+  fi
+}
+
+check_docker() {
+  if [ ! -S /var/run/docker.sock ]; then
+    error_exit "Docker socket (/var/run/docker.sock) hasn't be mounted \
+inside the container. Verify the syntax of the \"docker run\" command."
+  fi
+
+  if ! docker ps > /dev/null 2>&1; then
+    output=$(docker ps)
+    error_exit "Error when running \"docker ps\": ${output}"
   fi
 }
 
@@ -317,6 +331,8 @@ update_che_server() {
 # See: https://sipb.mit.edu/doc/safe-shell/
 set -e
 
+init_logging
+check_docker
 init_global_variables
 parse_command_line "$@"
 
