@@ -141,7 +141,7 @@ get_docker_host_ip() {
 get_che_hostname() {
   INSTALL_TYPE=$(get_docker_install_type)
   if [ "${INSTALL_TYPE}" = "boot2docker" ]; then
-    echo get_docker_host_ip
+    get_docker_host_ip
   else
     echo "localhost"
   fi
@@ -248,10 +248,9 @@ start_che_server() {
     -v "${CHE_DATA_FOLDER}"/storage:/home/user/che/storage \
     -p "${CHE_PORT}":8080 \
     --restart="${CHE_RESTART_POLICY}" \
-    --user="${CHE_USER}" \
-    "${CHE_CONF_ARGS}" \
+    --user="${CHE_USER}" ${CHE_CONF_ARGS} \
     "${CHE_SERVER_IMAGE_NAME}":"${CHE_VERSION}" \
-                --remote:"${CHE_DOCKER_HOST_IP}" \
+                --remote:"${DOCKER_HOST_IP}" \
                 -s:uid \
                 run > /dev/null 2>&1
 
