@@ -235,15 +235,15 @@ start_che_server() {
 
   info "------------------------------------"
   info "ECLIPSE CHE: CONTAINER IS STARTING"
-  docker run -d --name ${CHE_SERVER_CONTAINER_NAME} \
+  docker run -d --name "${CHE_SERVER_CONTAINER_NAME}" \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v ${CHE_DATA_FOLDER}/lib:/home/user/che/lib-copy \
-    -v ${CHE_DATA_FOLDER}/workspaces:/home/user/che/workspaces \
-    -v ${CHE_DATA_FOLDER}/storage:/home/user/che/storage \
-    -p ${CHE_PORT}:8080 \
-    --restart=${CHE_RESTART_POLICY} \
-    --user=${CHE_USER} \
-    ${CHE_SERVER_IMAGE_NAME}:${CHE_VERSION} \
+    -v "${CHE_DATA_FOLDER}"/lib:/home/user/che/lib-copy \
+    -v "${CHE_DATA_FOLDER}"/workspaces:/home/user/che/workspaces \
+    -v "${CHE_DATA_FOLDER}"/storage:/home/user/che/storage \
+    -p "${CHE_PORT}":8080 \
+    --restart="${CHE_RESTART_POLICY}" \
+    --user="${CHE_USER}" \
+    "${CHE_SERVER_IMAGE_NAME}":"${CHE_VERSION}" \
                 --remote:"${CHE_DOCKER_HOST_IP}" \
                 -s:uid \
                 run > /dev/null 2>&1
