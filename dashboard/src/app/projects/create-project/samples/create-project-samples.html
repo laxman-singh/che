@@ -21,7 +21,8 @@
               <div class="projects-create-project-samples-list-item"
                    ng-class="{'projects-create-project-samples-list-item-active' : template.name === createProjectSamplesCtrl.selectedTemplateName}"
                    ng-click="createProjectSamplesCtrl.selectTemplate(template, createProjectCtrl)"
-                   ng-init="createProjectSamplesCtrl.initItem($first, template, createProjectCtrl)" layout="column" flex>
+                   data-template-name="{{template.name}}"
+                   layout="column" flex>
                 <div class="projects-create-project-samples-list-samplename">{{template.displayName}}</div>
                 <div class="projects-create-project-samples-list-sampledescription">{{template.description}}</div>
               </div>

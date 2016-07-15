@@ -20,7 +20,8 @@ export class CreateProjectSamples {
    * Default constructor that is using resource
    * @ngInject for Dependency injection
    */
-  constructor () {
+  constructor ($timeout) {
+    this.$timeout = $timeout;
     this.restrict='E';
     this.templateUrl = 'app/projects/create-project/samples/create-project-samples.html';
 
@@ -30,4 +31,24 @@ export class CreateProjectSamples {
     this.bindToController = true;
   }
 
+  link($scope, element) {
+    let firstTemplateName = '',
+      createProjectSamplesCtrl = $scope.createProjectSamplesCtrl,
+      createProjectCtrl = $scope.createProjectCtrl;
+
+    $scope.$watch(() => {return createProjectCtrl.currentStackTags;}, () => {
+      this.$timeout(() => {
+        let firstTemplateElement = element.find('.projects-create-project-samples-list-item')[0];
+        if (!firstTemplateElement || firstTemplateElement.length === 0) {
+          return;
+        }
+
+        let templateName = angular.element(firstTemplateElement).data('template-name');
+        if (firstTemplateName !== templateName || !createProjectSamplesCtrl.isTemplateSelected(templateName)) {
+          firstTemplateName = templateName;
+          createProjectSamplesCtrl.initItem(templateName, createProjectCtrl);
+        }
+      });
+    });
+  }
 }
