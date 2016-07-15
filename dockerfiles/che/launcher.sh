@@ -11,6 +11,7 @@ init_global_variables() {
 
   CHE_SERVER_CONTAINER_NAME="che"
   CHE_SERVER_IMAGE_NAME="codenvy/che"
+  CHE_LAUNCER_IMAGE_NAME="codenvy/che-launcher"
 
   # Possible Docker install types are:
   #     native, boot2docker or moby
@@ -38,12 +39,11 @@ init_global_variables() {
 
   USAGE="
 Usage:
-  $(basename "${0}") [COMMAND]
+  docker run -v /var/run/docker.sock:/var/run.docker.sock ${CHE_LAUNCER_IMAGE_NAME} [COMMAND]
      start                              Starts Che server
      stop                               Stops Che server
      restart                            Restart Che server
-     update                             Pull latest version of ${CHE_SERVER_IMAGE_NAME} (restart
-                                        is needed to complete update)
+     update                             Pull latest version of ${CHE_SERVER_IMAGE_NAME}
      info                               Print some debugging information
 
 Docs: http://eclipse.org/che/getting-started.
