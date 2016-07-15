@@ -39,7 +39,7 @@ init_global_variables() {
 
   USAGE="
 Usage:
-  docker run -v /var/run/docker.sock:/var/run.docker.sock ${CHE_LAUNCER_IMAGE_NAME} [COMMAND]
+  docker run -v /var/run/docker.sock:/var/run/docker.sock ${CHE_LAUNCER_IMAGE_NAME} [COMMAND]
      start                              Starts Che server
      stop                               Stops Che server
      restart                            Restart Che server
@@ -234,7 +234,7 @@ start_che_server() {
   fi
 
   info "------------------------------------"
-  info "ECLIPSE CHE: CONTAINER IS STARTING"
+  info "ECLIPSE CHE: CONTAINER STARTING"
   docker run -d --name "${CHE_SERVER_CONTAINER_NAME}" \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "${CHE_DATA_FOLDER}"/lib:/home/user/che/lib-copy \
@@ -249,20 +249,16 @@ start_che_server() {
                 run > /dev/null 2>&1
 
   wait_until_container_is_running 10
-  if che_container_is_running; then
-    info "ECLIPSE CHE: CONTAINER STARTED"
-    info "------------------------------------"
-  else
+  if ! che_container_is_running; then
     error_exit "ECLIPSE CHE: Timeout waiting Che container to start."
   fi
 
-  info "------------------------------------"
   info "ECLIPSE CHE: SERVER BOOTING"
+  info "ECLIPSE CHE: See logs at \"docker logs -f che\""
   wait_until_server_is_booted 20
   if server_is_booted; then
     info "ECLIPSE CHE: BOOTED AND REACHABLE"
     info "ECLIPSE CHE: http://${CHE_HOSTNAME}:${CHE_PORT}"
-    info "ECLIPSE CHE: \"docker logs -f che\" TO SEE THE LOGS"
     info "------------------------------------"
   else
     error_exit "ECLIPSE CHE: Timeout waiting Che server to boot. Run \"docker logs che\" to see the logs."
