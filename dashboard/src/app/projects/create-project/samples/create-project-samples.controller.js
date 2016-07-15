@@ -14,7 +14,7 @@
  * This class is handling the controller for the samples part
  * @author Florent Benoit
  */
-export class CreateProjectSamplesCtrl {
+export class CreateProjectSamplesController {
 
   /**
    * Default constructor that is using resource

@@ -26,14 +26,14 @@ export class CreateProjectSamples {
     this.templateUrl = 'app/projects/create-project/samples/create-project-samples.html';
 
 
-    this.controller = 'CreateProjectSamplesCtrl';
-    this.controllerAs = 'createProjectSamplesCtrl';
+    this.controller = 'CreateProjectSamplesController';
+    this.controllerAs = 'createProjectSamplesController';
     this.bindToController = true;
   }
 
   link($scope, element) {
     let firstTemplateName = '',
-      createProjectSamplesCtrl = $scope.createProjectSamplesCtrl,
+      createProjectSamplesController = $scope.createProjectSamplesController,
       createProjectCtrl = $scope.createProjectCtrl;
 
     $scope.$watch(() => {return createProjectCtrl.currentStackTags;}, () => {
@@ -44,9 +44,9 @@ export class CreateProjectSamples {
         }
 
         let templateName = angular.element(firstTemplateElement).data('template-name');
-        if (firstTemplateName !== templateName || !createProjectSamplesCtrl.isTemplateSelected(templateName)) {
+        if (firstTemplateName !== templateName || !createProjectSamplesController.isTemplateSelected(templateName)) {
           firstTemplateName = templateName;
-          createProjectSamplesCtrl.initItem(templateName, createProjectCtrl);
+          createProjectSamplesController.initItem(templateName, createProjectCtrl);
         }
       });
     });
