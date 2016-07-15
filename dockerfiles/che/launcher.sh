@@ -36,6 +36,11 @@ init_global_variables() {
   CHE_LOG_LEVEL=${CHE_LOG_LEVEL:-${DEFAULT_CHE_LOG_LEVEL}}
   CHE_DATA_FOLDER=${CHE_DATA_FOLDER:-${DEFAULT_CHE_DATA_FOLDER}}
 
+  # CHE_CONF_ARGS are the Docker run options that need to be used if users set CHE_CONF_FOLDER:
+  #   - empty if CHE_CONF_FOLDER is not set
+  #   - -v ${CHE_CONF_FOLDER}:/conf -e "CHE_LOCAL_CONF_DIR=/conf" if CHE_CONF_FOLDER is set
+  CHE_CONF_ARGS=${CHE_CONF_FOLDER:+-v ${CHE_CONF_FOLDER}:/conf -e \"CHE_LOCAL_CONF_DIR=/conf\"}
+
 
   USAGE="
 Usage:
@@ -102,6 +107,7 @@ print_debug_info() {
   debug "CHE_LOG_LEVEL             = ${CHE_LOG_LEVEL}"
   debug "CHE_HOSTNAME              = ${CHE_HOSTNAME}"
   debug "CHE_DATA_FOLDER           = ${CHE_DATA_FOLDER}"
+  debug "CHE_CONF_FOLDER           = ${CHE_CONF_FOLDER:-not set}"
   debug "---------------------------------------"
   debug "---------------------------------------"
   debug "---------------------------------------"
@@ -243,6 +249,7 @@ start_che_server() {
     -p "${CHE_PORT}":8080 \
     --restart="${CHE_RESTART_POLICY}" \
     --user="${CHE_USER}" \
+    "${CHE_CONF_ARGS}" \
     "${CHE_SERVER_IMAGE_NAME}":"${CHE_VERSION}" \
                 --remote:"${CHE_DOCKER_HOST_IP}" \
                 -s:uid \
@@ -304,6 +311,7 @@ update_che_server() {
 
 # See: https://sipb.mit.edu/doc/safe-shell/
 set -e
+set -u
 
 init_logging
 check_docker
