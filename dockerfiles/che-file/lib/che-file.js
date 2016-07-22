@@ -222,9 +222,7 @@ function cheBoot() {
         ' -e CHE_DATA_FOLDER=' + workspacesFolder +
         ' -e CHE_CONF_FOLDER=' + confFolder +
         ' codenvy/che-launcher:nightly start';
-    if (debug) {
         console.log('Executing command line', commandLine);
-    }
     var child = exec(commandLine, function callback(error, stdout, stderr) {
         //console.log('error is ' + error, stdout, stderr);
     });

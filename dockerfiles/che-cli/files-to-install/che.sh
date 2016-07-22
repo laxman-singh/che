@@ -103,14 +103,14 @@ execute_che_file() {
 
   update_che_file
 
-#  CURRENT_DIRECTORY="$PWD"
- # echo $CURRENT_DIRECTORY
-
   info "ECLIPSE CHE FILE: LAUNCHING CONTAINER"
+  CURRENT_DIRECTORY="$PWD"
+  MODIFIED_DIRECTORY=${CURRENT_DIRECTORY//////}
   docker run -it --rm --name "${CHE_FILE_CONTAINER_NAME}" \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    -v "$PWD":"$PWD" \
-    "${CHE_FILE_IMAGE_NAME}":"${CHE_VERSION}" /bin/che-file "$PWD" "${CHE_CLI_ACTION}"
+         -v //var//run//docker.sock://var//run//docker.sock \
+         -v "${MODIFIED_DIRECTORY}":"${MODIFIED_DIRECTORY}" \
+         "${CHE_FILE_IMAGE_NAME}":"${CHE_VERSION}" \
+         //bin//che-file "${MODIFIED_DIRECTORY}" "${CHE_CLI_ACTION}"
     # > /dev/null 2>&1
 }
 
