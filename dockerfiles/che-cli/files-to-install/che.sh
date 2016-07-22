@@ -15,7 +15,10 @@ init_logging() {
 init_global_variables() {
 
   CHE_LAUNCHER_CONTAINER_NAME="che-launcher"
-  CHE_LAUNCHER_IMAGE_NAME="che-launcher"
+  CHE_LAUNCHER_IMAGE_NAME="codenvy/che-launcher"
+
+  CHE_FILE_CONTAINER_NAME="che-file"
+  CHE_FILE_IMAGE_NAME="codenvy/che-file"
 
   # User configurable variables
   DEFAULT_CHE_VERSION="latest"
@@ -32,6 +35,8 @@ Usage:
      restart                            Restart Che server
      update                             Pull latest version of ${CHE_LAUNCHER_IMAGE_NAME}
      info                               Print some debugging information
+     init                               Initialize directory with Che configuration
+     up                                 Create workspace from source in current directory
 
 Docs: http://eclipse.org/che/getting-started.
 "
@@ -72,7 +77,7 @@ check_docker() {
 parse_command_line () {
   for command_line_option in "$@"; do
     case ${command_line_option} in
-      start|stop|restart|update|info|-h|--help)
+      start|stop|restart|update|info|init|up|-h|--help)
         CHE_CLI_ACTION=${command_line_option}
       ;;
       *)
@@ -91,6 +96,21 @@ execute_che_launcher() {
   docker run -it --rm --name "${CHE_LAUNCHER_CONTAINER_NAME}" \
     -v //var//run//docker.sock://var//run//docker.sock \
     "${CHE_LAUNCHER_IMAGE_NAME}":"${CHE_VERSION}" "${CHE_CLI_ACTION}" \
+    # > /dev/null 2>&1
+}
+
+execute_che_file() {
+
+  update_che_file
+
+#  CURRENT_DIRECTORY="$PWD"
+ # echo $CURRENT_DIRECTORY
+
+  info "ECLIPSE CHE FILE: LAUNCHING CONTAINER"
+  docker run -it --rm --name "${CHE_FILE_CONTAINER_NAME}" \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "$PWD":"$PWD" \
+    "${CHE_FILE_IMAGE_NAME}":"${CHE_VERSION}" /bin/che-file "$PWD" "${CHE_CLI_ACTION}"
     # > /dev/null 2>&1
 }
 
@@ -136,6 +156,22 @@ update_che_launcher() {
   fi
 }
 
+update_che_file() {
+  if [ -z "${CHE_VERSION}" ]; then
+    CHE_VERSION=${DEFAULT_CHE_VERSION}
+  fi
+
+  CURRENT_IMAGE=$(docker images -q ${CHE_FILE_IMAGE_NAME}:${CHE_VERSION})
+
+  if [ "${CURRENT_IMAGE}" != "" ]; then
+    info "ECLIPSE CHE FILE: ALREADY HAVE IMAGE ${CHE_FILE_IMAGE_NAME}:${CHE_VERSION}"
+  else
+    info "ECLIPSE CHE FILE: PULLING IMAGE ${CHE_FILE_IMAGE_NAME}:${CHE_VERSION}"
+    execute_command_with_progress extended docker pull ${CHE_FILE_IMAGE_NAME}:${CHE_VERSION}
+    info "ECLIPSE CHE FILE: IMAGE ${CHE_FILE_IMAGE_NAME}:${CHE_VERSION} INSTALLED"
+  fi
+}
+
 # See: https://sipb.mit.edu/doc/safe-shell/
 set -e
 set -u
@@ -146,11 +182,15 @@ init_global_variables
 parse_command_line "$@"
 
 case ${CHE_CLI_ACTION} in
-  start|stop|restart|update|info)
+  start|stop|restart|info)
     execute_che_launcher
   ;;
-  update-cli)
+  init|up)
+    execute_che_file
+  ;;
+  update)
     update_che_launcher
+    update_che_file
   ;;
   help)
     usage

@@ -5,21 +5,25 @@
 # http://www.eclipse.org/legal/epl-v10.html
 #
 # To build, in this directory:
-#  first, if there are changes in typescript, use
+#  first, if there are changes in typescript, call `build.sh` or:
 #  `tsc --outDir lib src/che.ts`
 #  `docker build -t codenvy/che-file .`
-# or call build.sh
 #
-# To use it:
-#  `che.sh` or
-#  `docker run  -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD":"$PWD" --rm codenvy/che-file /bin/che $PWD $1`
-
+# To use:
+#  `docker run -v /var/run/docker.sock:/var/run/docker.sock \
+#              -v "$PWD":"$PWD" --rm codenvy/che-file \
+#              /bin/che $PWD [COMMAND]`
+# 
+#  where [COMMAND]:
+#    init -- Initialize configuration files for this directory
+#    up   -- Launch workspace, starting Che server, if necessary 
+#
 FROM mhart/alpine-node
 
 ENV DOCKER_BUCKET get.docker.com
 ENV DOCKER_VERSION 1.6.0
 
-RUN     set -x \
+RUN set -x \
     && apk add --no-cache \
     ca-certificates \
     curl \
@@ -30,4 +34,4 @@ RUN     set -x \
 ADD lib /lib
 ADD bin /bin
 
-CMD ["node", "lib/che.js"]
+CMD ["node", "lib/che-file.js"]
