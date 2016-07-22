@@ -4,6 +4,10 @@
 # are made available under the terms of the Eclipse Public License v1.0
 # which accompanies this distribution, and is available at
 # http://www.eclipse.org/legal/epl-v10.html
+#
+# Contributors:
+#   Tyler Jewell - Initial Implementation
+#
 
 init_logging() {
   BLUE='\033[1;34m'
@@ -21,7 +25,7 @@ init_global_variables() {
   CHE_FILE_IMAGE_NAME="codenvy/che-file"
 
   # User configurable variables
-  DEFAULT_CHE_VERSION="latest"
+  DEFAULT_CHE_VERSION="nightly"
   DEFAULT_CHE_CLI_ACTION="help"
 
   CHE_VERSION=${CHE_VERSION:-${DEFAULT_CHE_VERSION}}
@@ -67,7 +71,14 @@ error_exit() {
   exit 1
 }
 
+docker() {
+  MSYS_NO_PATHCONV=1 docker.exe "$@"
+}
+
 check_docker() {
+  if [[ get_docker_install_type = "boot2docker" || get_docker_install_type = "docker4windows" ]]; then
+    export -f docker
+  fi
   if ! docker ps > /dev/null 2>&1; then
     output=$(docker)
     error_exit "Error - Docker not installed properly: ${output}"
@@ -88,13 +99,58 @@ parse_command_line () {
   done
 }
 
+is_boot2docker() {
+  if uname -r | grep -q 'boot2docker'; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+has_docker_for_windows_ip() {
+  DOCKER_HOST_IP=$(get_docker_host_ip)
+  if [ "${DOCKER_HOST_IP}" = "10.0.75.2" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+is_docker_for_mac() {
+  if uname -r | grep -q 'moby' && ! has_docker_for_windows_ip; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+is_docker_for_windows() {
+  if uname -r | grep -q 'moby' && has_docker_for_windows_ip; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+get_docker_install_type() {
+  if is_boot2docker; then
+    echo "boot2docker"
+  elif is_docker_for_windows; then
+    echo "docker4windows"
+  elif is_docker_for_mac; then
+    echo "docker4mac"
+  else
+    echo "native"
+  fi
+}
+
 execute_che_launcher() {
 
   update_che_launcher
 
   info "ECLIPSE CHE: LAUNCHING LAUNCHER"
-  docker run -it --rm --name "${CHE_LAUNCHER_CONTAINER_NAME}" \
-    -v //var//run//docker.sock://var//run//docker.sock \
+  docker run -it --name "${CHE_LAUNCHER_CONTAINER_NAME}" \
+    -v /var/run/docker.sock:/var/run/docker.sock \
     "${CHE_LAUNCHER_IMAGE_NAME}":"${CHE_VERSION}" "${CHE_CLI_ACTION}" \
     # > /dev/null 2>&1
 }
@@ -107,10 +163,10 @@ execute_che_file() {
   CURRENT_DIRECTORY="$PWD"
   MODIFIED_DIRECTORY=${CURRENT_DIRECTORY//////}
   docker run -it --rm --name "${CHE_FILE_CONTAINER_NAME}" \
-         -v //var//run//docker.sock://var//run//docker.sock \
-         -v "${MODIFIED_DIRECTORY}":"${MODIFIED_DIRECTORY}" \
+         -v /var/run/docker.sock:/var/run/docker.sock \
+         -v "$PWD":"$PWD" \
          "${CHE_FILE_IMAGE_NAME}":"${CHE_VERSION}" \
-         //bin//che-file "${MODIFIED_DIRECTORY}" "${CHE_CLI_ACTION}"
+         /bin/che-file "$PWD" "${CHE_CLI_ACTION}"
     # > /dev/null 2>&1
 }
 

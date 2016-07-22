@@ -1,4 +1,14 @@
 #!/usr/bin/env node
+// Copyright (c) 2012-2016 Codenvy, S.A.
+// All rights reserved. This program and the accompanying materials
+// are made available under the terms of the Eclipse Public License v1.0
+// which accompanies this distribution, and is available at
+// http://www.eclipse.org/legal/epl-v10.html
+//
+// Contributors:
+//   Florent Benoit - Initial Implementation
+//
+
 "use strict";
 var remoteip_1 = require('./remoteip');
 var recipebuilder_1 = require('./recipebuilder');
@@ -17,9 +27,11 @@ var fs = require('fs');
 var vm = require('vm');
 var readline = require('readline');
 var exec = require('child_process').exec;
+
 function startsWith(value, searchString) {
     return value.substr(0, searchString.length) === searchString;
 }
+
 // init folder/files variables
 var currentFolder = path.resolve('./');
 var folderName = path.basename(currentFolder);
@@ -30,7 +42,9 @@ var workspacesFolder = path.resolve(dotCheFolder, 'workspaces');
 var chePropertiesFile = path.resolve(confFolder, 'che.properties');
 var mode;
 var args = process.argv.slice(2);
+
 analyzeArgs(args);
+
 function analyzeArgs(args) {
     if (args.length == 0) {
         console.log('only init and up commands are supported.');
@@ -222,7 +236,8 @@ function cheBoot() {
         ' -e CHE_DATA_FOLDER=' + workspacesFolder +
         ' -e CHE_CONF_FOLDER=' + confFolder +
         ' codenvy/che-launcher:nightly start';
-        console.log('Executing command line', commandLine);
+    
+    console.log('Executing command line', commandLine);
     var child = exec(commandLine, function callback(error, stdout, stderr) {
         //console.log('error is ' + error, stdout, stderr);
     });
