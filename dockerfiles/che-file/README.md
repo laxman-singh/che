@@ -7,6 +7,8 @@ $ npm install -g tsc
 # Build
 ```
 $ build.sh
+
+(or look at the content)
 ````
 
 
