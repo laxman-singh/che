@@ -22,7 +22,7 @@ goto end
 
 :setup
 echo. 
-echo "REQUIRED: Git bash for Windows. It is typically stored c:\Program Files\Git\bin."
+echo "REQUIRED: Git Bash for Windows. Get it at https://git-for-windows.github.io/"
 echo.
 
 :end
