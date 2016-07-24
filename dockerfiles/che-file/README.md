@@ -2,7 +2,7 @@
 - check typescript is installed
 
 ```
-$ npm install -g tsc
+$ npm install -g typescript
 ```
 # Build
 ```
