@@ -72,13 +72,14 @@ error_exit() {
 }
 
 docker() {
-  MSYS_NO_PATHCONV=1 docker.exe "$@"
+  if [[ get_docker_install_type = "boot2docker" || get_docker_install_type = "docker4windows" ]]; then
+    MSYS_NO_PATHCONV=1 docker.exe "$@"
+  else
+    $(which docker) "$@"
+  fi
 }
 
 check_docker() {
-  if [[ get_docker_install_type = "boot2docker" || get_docker_install_type = "docker4windows" ]]; then
-    export -f docker
-  fi
   if ! docker ps > /dev/null 2>&1; then
     output=$(docker)
     error_exit "Error - Docker not installed properly: ${output}"
