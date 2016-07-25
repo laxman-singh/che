@@ -556,7 +556,7 @@ export class CreateProjectCtrl {
       let fetchTypePromise = projectTypeService.fetchTypes();
       fetchTypePromise.then(() => {
         let projectTypesByCategory = projectTypeService.getProjectTypesIDs();
-        // now try the estimate for each source
+
         let estimatePromises = [];
         let estimateTypes = [];
         resultResolve.forEach((sourceResolve) => {
