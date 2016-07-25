@@ -1,14 +1,9 @@
-# PreReqs
-- check typescript is installed
-
-```
-$ npm install -g typescript
 ```
 # Build
 ```
 $ build.sh
 
-(or look at the content)
+(or look at the content of this script)
 ````
 
 
