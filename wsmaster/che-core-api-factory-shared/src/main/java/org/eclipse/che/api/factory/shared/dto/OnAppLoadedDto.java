@@ -11,6 +11,7 @@
 package org.eclipse.che.api.factory.shared.dto;
 
 import org.eclipse.che.api.core.factory.FactoryParameter;
+import org.eclipse.che.api.core.model.factory.OnAppLoaded;
 import org.eclipse.che.dto.shared.DTO;
 
 import java.util.List;
@@ -18,19 +19,20 @@ import java.util.List;
 import static org.eclipse.che.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
- * Describe IDE look and feel on project opened event.
+ * Describe IDE look and feel on application loaded event.
  *
  * @author Sergii Kabashniuk
  */
 @DTO
-public interface OnProjectsLoaded {
+public interface OnAppLoadedDto extends OnAppLoaded {
+
     /**
      * @return actions for current event.
      */
     @FactoryParameter(obligation = OPTIONAL)
-    List<Action> getActions();
+    List<IdeActionDto> getActions();
 
-    void setActions(List<Action> actions);
+    void setActions(List<IdeActionDto> actions);
 
-    OnProjectsLoaded withActions(List<Action> actions);
+    OnAppLoadedDto withActions(List<IdeActionDto> actions);
 }

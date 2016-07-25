@@ -11,7 +11,7 @@
 package org.eclipse.che.api.factory.server;
 
 import org.eclipse.che.api.core.ApiException;
-import org.eclipse.che.api.factory.shared.dto.Factory;
+import org.eclipse.che.api.factory.shared.dto.FactoryDto;
 
 /**
  * Convert legacy factory parameter to new the latest format
@@ -19,5 +19,5 @@ import org.eclipse.che.api.factory.shared.dto.Factory;
  * @author Alexander Garagatyi
  */
 public interface LegacyConverter {
-    void convert(Factory factory) throws ApiException;
+    void convert(FactoryDto factory) throws ApiException;
 }

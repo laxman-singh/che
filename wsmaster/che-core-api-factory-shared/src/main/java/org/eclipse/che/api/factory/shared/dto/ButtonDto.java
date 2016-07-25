@@ -10,40 +10,31 @@
  *******************************************************************************/
 package org.eclipse.che.api.factory.shared.dto;
 
-import static org.eclipse.che.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
-
 import org.eclipse.che.api.core.factory.FactoryParameter;
+import org.eclipse.che.api.core.model.factory.Button;
 import org.eclipse.che.dto.shared.DTO;
 
-import java.util.Map;
+import static org.eclipse.che.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
- * Describe ide action.
- *
- * @author Sergii Kabashniuk
+ * @author Alexander Garagatyi
  */
 @DTO
-public interface Action {
-    /**
-     * Action Id
-     *
-     * @return id of action.
-     */
+public interface ButtonDto extends Button {
+
+    /** Type of the button */
     @FactoryParameter(obligation = OPTIONAL)
-    String getId();
+    ButtonType getType();
 
-    void setId(String id);
+    void setType(ButtonType type);
 
-    Action withId(String id);
+    ButtonDto withType(ButtonType type);
 
-    /***
-     *
-     * @return Action properties
-     */
+    /** Button attributes */
     @FactoryParameter(obligation = OPTIONAL)
-    Map<String, String> getProperties();
+    ButtonAttributesDto getAttributes();
 
-    void setProperties(Map<String, String> properties);
+    void setAttributes(ButtonAttributesDto attributes);
 
-    Action withProperties(Map<String, String> properties);
+    ButtonDto withAttributes(ButtonAttributesDto attributes);
 }
