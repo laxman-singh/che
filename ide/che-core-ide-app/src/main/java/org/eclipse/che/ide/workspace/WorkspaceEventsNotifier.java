@@ -125,7 +125,6 @@ public class WorkspaceEventsNotifier {
         this.locale = locale;
         this.messageBusProvider = messageBusProvider;
         this.wsComponentProvider = wsComponentProvider;
-
         this.snapshotCreator = snapshotCreator;
         this.initialLoadingInfo = initialLoadingInfo;
         this.notificationManager = notificationManager;
@@ -136,7 +135,6 @@ public class WorkspaceEventsNotifier {
         this.startWorkspacePresenter = startWorkspacePresenter;
 
         this.snapshotLoader = loaderFactory.newLoader(locale.createSnapshotProgress());
-
     }
 
     /**
@@ -186,11 +184,9 @@ public class WorkspaceEventsNotifier {
                         case STARTING:
                             onWorkspaceStarting(workspace.getId());
                             break;
-
                         case RUNNING:
                             onWorkspaceStarted(workspace.getId());
                             break;
-
                         case ERROR:
                             unSubscribeFromChannel(channel, this);
                             unSubscribeHandlers();
@@ -204,7 +200,6 @@ public class WorkspaceEventsNotifier {
 
                             eventBus.fireEvent(new WorkspaceStoppedEvent(workspace));
                             break;
-
                         case STOPPED:
                             unSubscribeFromChannel(channel, this);
                             unSubscribeHandlers();
@@ -212,16 +207,13 @@ public class WorkspaceEventsNotifier {
                             notificationManager.notify(locale.extServerStopped(), StatusNotification.Status.SUCCESS, FLOAT_MODE);
                             eventBus.fireEvent(new WorkspaceStoppedEvent(workspace));
                             break;
-
                         case SNAPSHOT_CREATING:
                             snapshotLoader.show();
                             break;
-
                         case SNAPSHOT_CREATED:
                             snapshotLoader.hide();
                             snapshotCreator.successfullyCreated();
                             break;
-
                         case SNAPSHOT_CREATION_ERROR:
                             snapshotLoader.hide();
                             snapshotCreator.creationError("Snapshot creation error: " + statusEvent.getError());
@@ -316,7 +308,6 @@ public class WorkspaceEventsNotifier {
                 Log.error(WorkspaceComponent.class, exception);
             }
         };
-
         subscribeToChannel(environmentStatusChannel, statusEventSubscriptionHandler);
     }
 
@@ -385,7 +376,6 @@ public class WorkspaceEventsNotifier {
                                                           startWorkspacePresenter.show(workspaces, callback);
                                                       }
                                                   }).show();
-
             }
         };
     }

@@ -176,7 +176,6 @@ public abstract class WorkspaceComponent implements Component, WsAgentStateHandl
                     case STARTING:
                         eventBus.fireEvent(new WorkspaceStartingEvent(workspace));
                         break;
-
                     case RUNNING:
                         Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
                             @Override

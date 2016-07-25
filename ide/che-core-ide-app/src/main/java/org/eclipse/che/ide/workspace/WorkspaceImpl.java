@@ -18,7 +18,7 @@ import org.eclipse.che.api.core.model.workspace.WorkspaceStatus;
 import java.util.Map;
 
 /**
- * //
+ * Data object for {@link Workspace}.
  *
  * @author Vitalii Parfonov
  */
