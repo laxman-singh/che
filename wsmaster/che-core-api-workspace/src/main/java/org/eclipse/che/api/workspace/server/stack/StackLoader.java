@@ -21,6 +21,8 @@ import com.google.inject.name.Named;
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.NotFoundException;
 import org.eclipse.che.api.core.ServerException;
+import org.eclipse.che.api.machine.server.model.impl.AclEntryImpl;
+import org.eclipse.che.api.user.server.CheUserCreator;
 import org.eclipse.che.api.workspace.server.model.impl.stack.StackImpl;
 import org.eclipse.che.api.workspace.server.spi.StackDao;
 import org.eclipse.che.api.workspace.server.stack.image.StackIcon;
@@ -55,9 +57,11 @@ public class StackLoader {
     private final StackDao stackDao;
 
     @Inject
+    @SuppressWarnings("unused")
     public StackLoader(@Named("che.stacks.default") String stacksPath,
                        @Named("che.stacks.images.storage") String stackIconFolder,
-                       StackDao stackDao) {
+                       StackDao stackDao,
+                       CheUserCreator userCreator) {
         this.stackJsonPath = Paths.get(stacksPath);
         this.stackIconFolderPath = Paths.get(stackIconFolder);
         this.stackDao = stackDao;
@@ -81,7 +85,9 @@ public class StackLoader {
     }
 
     private void loadStack(StackImpl stack) {
+        stack.getAcl().clear();
         setIconData(stack, stackIconFolderPath);
+
         try {
             stackDao.update(stack);
         } catch (NotFoundException | ConflictException | ServerException e) {
