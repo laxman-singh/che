@@ -342,8 +342,18 @@ public class FactoryService extends Service {
                              String imageId) throws NotFoundException,
                                                     BadRequestException,
                                                     ServerException {
-        final Set<FactoryImage> images = isNullOrEmpty(imageId) ? factoryManager.getFactoryImages(factoryId)
-                                                                : factoryManager.getFactoryImages(factoryId, imageId);
+        final Set<FactoryImage> images;
+        if (isNullOrEmpty(imageId)) {
+            if ((images = factoryManager.getFactoryImages(factoryId)).isEmpty()) {
+                LOG.warn("Default image for factory {} is not found.", factoryId);
+                throw new NotFoundException("Default image for factory " + factoryId + " is not found.");
+            }
+        } else {
+            if ((images = factoryManager.getFactoryImages(factoryId, imageId)).isEmpty()) {
+                LOG.warn("Image with id {} is not found.", imageId);
+                throw new NotFoundException("Image with id " + imageId + " is not found.");
+            }
+        }
         final FactoryImage image = images.iterator().next();
         return Response.ok(image.getImageData(), image.getMediaType()).build();
     }

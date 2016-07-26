@@ -13,14 +13,14 @@ package org.eclipse.che.api.core.model.factory;
 import java.util.Map;
 
 /**
- * Defines ide action model.
+ * Defines the contract for the factory action instance.
  *
  * @author Anton Korneta
  */
 public interface Action {
 
     /**
-     * Returns the identifier of this action instance
+     * Returns the IDE specific identifier of action e.g. ('openFile', 'editFile')
      */
     String getId();
 

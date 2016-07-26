@@ -20,7 +20,7 @@ public final class Constants {
     // factory links rel attributes
     public static final String IMAGE_REL_ATT                    = "image";
     public static final String RETRIEVE_FACTORY_REL_ATT         = "self";
-    public static final String SNIPPET_REL_ATT                  = "snippet/";
+    public static final String SNIPPET_REL_ATT                  = "snippet";
     public static final String FACTORY_ACCEPTANCE_REL_ATT       = "accept";
     public static final String NAMED_FACTORY_ACCEPTANCE_REL_ATT = "accept-named";
     public static final String ACCEPTED_REL_ATT                 = "accepted";

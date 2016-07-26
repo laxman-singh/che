@@ -11,7 +11,7 @@
 package org.eclipse.che.api.core.model.factory;
 
 /**
- * Defines factory creator.
+ * Defines the contract for the factory creator instance.
  *
  * @author Anton Korneta
  */

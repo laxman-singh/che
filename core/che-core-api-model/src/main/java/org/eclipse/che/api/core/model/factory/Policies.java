@@ -11,7 +11,7 @@
 package org.eclipse.che.api.core.model.factory;
 
 /**
- * Defines factory restrictions.
+ * Defines the contract for the factory restrictions.
  *
  * @author Anton Korneta
  */

@@ -21,6 +21,8 @@ import org.eclipse.che.api.factory.server.model.impl.FactoryImpl;
 import org.eclipse.che.api.factory.server.spi.FactoryDao;
 import org.eclipse.che.commons.lang.NameGenerator;
 import org.eclipse.che.commons.lang.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -37,6 +39,7 @@ import static java.util.Objects.requireNonNull;
  * @author Anton Korneta
  */
 public class JpaFactoryDao implements FactoryDao {
+    private static final Logger LOG = LoggerFactory.getLogger(JpaFactoryDao.class);
 
     @Inject
     private Provider<EntityManager> managerProvider;
@@ -98,6 +101,7 @@ public class JpaFactoryDao implements FactoryDao {
                                             int skipCount,
                                             List<Pair<String, String>> attributes) throws ServerException {
         try {
+            LOG.info("FactoryDao#getByAttributes #maxItems: {} #skipCount: {}, #attributes: {}", maxItems, skipCount, attributes);
             final Map<String, Pair<String, String>> params = new HashMap<>();
             for (Pair<String, String> attribute : attributes) {
                 params.put(NameGenerator.generate("att", 3), attribute);

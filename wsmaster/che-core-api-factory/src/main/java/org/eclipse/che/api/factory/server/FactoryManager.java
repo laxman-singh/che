@@ -91,7 +91,7 @@ public class FactoryManager {
      *
      * @param update
      *         factory update
-     * @return updated factory with links
+     * @return updated factory
      * @throws NullPointerException
      *         when {@code update} is null
      * @throws ConflictException
@@ -116,7 +116,7 @@ public class FactoryManager {
      *
      * @param update
      *         factory update
-     * @return updated factory with links
+     * @return updated factory
      * @throws NullPointerException
      *         when {@code update} is null
      * @throws ConflictException
@@ -174,43 +174,43 @@ public class FactoryManager {
         return factoryDao.getById(id);
     }
 
-    public Set<FactoryImage> getFactoryImages(String factoryId) throws NotFoundException,
-                                                                       ServerException {
-        requireNonNull(factoryId);
-        final Set<FactoryImage> images = factoryDao.getById(factoryId).getImages();
-        if (images.isEmpty()) {
-            throw new NotFoundException("Default image for factory " + factoryId + " is not found.");
-        }
-        return images;
-    }
-
     /**
-     * Get image information by its id from specified factory.
+     * Gets factory images by given factory and image ids.
      *
      * @param factoryId
      *         factory identifier
      * @param imageId
      *         image identifier
-     * @return image information if ids are correct. If imageId is not set, random image of the factory will be returned,
-     * if factory has no images, exception will be thrown
+     * @return factory images or empty set if no image found by given {@code imageId}
      * @throws NotFoundException
-     *         when the factory with specified id doesn't not found
-     * @throws NotFoundException
-     *         when image id is not specified and there is no default image for the specified factory
-     * @throws NotFoundException
-     *         when image with specified id doesn't exist
+     *         when specified factory not found
+     * @throws ServerException
+     *         when any server errors occurs
      */
     public Set<FactoryImage> getFactoryImages(String factoryId, String imageId) throws NotFoundException,
                                                                                        ServerException {
         requireNonNull(factoryId);
         requireNonNull(imageId);
-        final Set<FactoryImage> images = getFactoryImages(factoryId).stream()
-                                                                    .filter(image -> imageId.equals(image.getName()))
-                                                                    .collect(Collectors.toSet());
-        if (images.isEmpty()) {
-            throw new NotFoundException("Image with name " + imageId + " is not found");
-        }
-        return images;
+        return getFactoryImages(factoryId).stream()
+                                          .filter(image -> imageId.equals(image.getName()))
+                                          .collect(Collectors.toSet());
+    }
+
+    /**
+     * Gets all the factory images.
+     *
+     * @param factoryId
+     *         factory identifier
+     * @return factory images or empty set if no image found for factory
+     * @throws NotFoundException
+     *         when specified factory not found
+     * @throws ServerException
+     *         when any server errors occurs
+     */
+    public Set<FactoryImage> getFactoryImages(String factoryId) throws NotFoundException,
+                                                                       ServerException {
+        requireNonNull(factoryId);
+        return factoryDao.getById(factoryId).getImages();
     }
 
     /**

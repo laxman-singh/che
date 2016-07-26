@@ -13,7 +13,7 @@ package org.eclipse.che.api.core.model.factory;
 import org.eclipse.che.api.core.model.workspace.WorkspaceConfig;
 
 /**
- * Defines factory model and specifies contract for factory instances.
+ * Defines the contract for the factory instance.
  *
  * @author Anton Korneta
  */

@@ -11,7 +11,7 @@
 package org.eclipse.che.api.core.model.factory;
 
 /**
- * Defines IDE interface Look and Feel.
+ * Defines the contract for the factory IDE instance.
  *
  * @author Anton Korneta
  */

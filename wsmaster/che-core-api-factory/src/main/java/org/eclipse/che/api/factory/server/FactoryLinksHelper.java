@@ -113,7 +113,7 @@ public class FactoryLinksHelper {
                                                                           .toString(),
                                                                 null,
                                                                 TEXT_PLAIN,
-                                                                SNIPPET_REL_ATT + snippet))
+                                                                SNIPPET_REL_ATT + '/' + snippet))
                                      .collect(toList()));
 
             // creation of accept factory link
