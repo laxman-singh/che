@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.eclipse.che.ide.workspace;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gwt.core.client.Callback;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -51,7 +52,6 @@ import org.eclipse.che.ide.websocket.MessageBus;
 import org.eclipse.che.ide.websocket.MessageBusProvider;
 import org.eclipse.che.ide.websocket.WebSocketException;
 import org.eclipse.che.ide.websocket.rest.SubscriptionHandler;
-import org.eclipse.che.ide.websocket.rest.Unmarshallable;
 import org.eclipse.che.ide.workspace.start.StartWorkspacePresenter;
 
 import java.util.List;
@@ -80,8 +80,8 @@ import static org.eclipse.che.ide.ui.loaders.initialization.OperationInfo.Status
  */
 @Singleton
 public class WorkspaceEventsNotifier {
-    private final static int    SKIP_COUNT      = 0;
-    private final static int    MAX_COUNT       = 10;
+    private final static int SKIP_COUNT = 0;
+    private final static int MAX_COUNT  = 10;
 
     private final EventBus                            eventBus;
     private final CoreLocalizationConstant            locale;
@@ -96,16 +96,23 @@ public class WorkspaceEventsNotifier {
     private final WorkspaceServiceClient              workspaceServiceClient;
     private final StartWorkspacePresenter             startWorkspacePresenter;
 
-    private Callback<Component, Exception>            callback;
-    private MessageBus                                messageBus;
-    private DefaultWorkspaceComponent                 workspaceComponent;
-    private MessageBusProvider                        messageBusProvider;
-    private SubscriptionHandler<MachineStatusEvent>   statusEventSubscriptionHandler;
-    private SubscriptionHandler<MachineLogMessageDto> environmentOutputSubscriptionHandler;
-    private SubscriptionHandler<String>               wsAgentLogSubscriptionHandler;
-    private String                                    environmentStatusChannel;
-    private String                                    environmentOutputChannel;
-    private String                                    wsAgentLogChannel;
+    private DefaultWorkspaceComponent      workspaceComponent;
+    private Callback<Component, Exception> callback;
+    private MessageBus                     messageBus;
+    private MessageBusProvider             messageBusProvider;
+    private String                         environmentStatusChannel;
+    private String                         environmentOutputChannel;
+    private String                         wsAgentLogChannel;
+    private String                         workspaceStatusChannel;
+
+    @VisibleForTesting
+    WorkspaceStatusSubscriptionHandler   workspaceStatusSubscriptionHandler;
+    @VisibleForTesting
+    EnvironmentStatusSubscriptionHandler environmentStatusSubscriptionHandler;
+    @VisibleForTesting
+    EnvironmentOutputSubscriptionHandler environmentOutputSubscriptionHandler;
+    @VisibleForTesting
+    WsAgentOutputSubscriptionHandler     wsAgentLogSubscriptionHandler;
 
     @Inject
     WorkspaceEventsNotifier(final EventBus eventBus,
@@ -115,16 +122,15 @@ public class WorkspaceEventsNotifier {
                             final InitialLoadingInfo initialLoadingInfo,
                             final NotificationManager notificationManager,
                             final MessageBusProvider messageBusProvider,
-                            final Provider<DefaultWorkspaceComponent> wsComponentProvider,
                             final Provider<MachineManager> machineManagerProvider,
                             final WorkspaceSnapshotCreator snapshotCreator,
                             final LoaderFactory loaderFactory,
                             final WorkspaceServiceClient workspaceServiceClient,
-                            final StartWorkspacePresenter startWorkspacePresenter) {
+                            final StartWorkspacePresenter startWorkspacePresenter,
+                            final Provider<DefaultWorkspaceComponent> wsComponentProvider) {
         this.eventBus = eventBus;
         this.locale = locale;
         this.messageBusProvider = messageBusProvider;
-        this.wsComponentProvider = wsComponentProvider;
         this.snapshotCreator = snapshotCreator;
         this.initialLoadingInfo = initialLoadingInfo;
         this.notificationManager = notificationManager;
@@ -133,6 +139,7 @@ public class WorkspaceEventsNotifier {
         this.machineManagerProvider = machineManagerProvider;
         this.workspaceServiceClient = workspaceServiceClient;
         this.startWorkspacePresenter = startWorkspacePresenter;
+        this.wsComponentProvider = wsComponentProvider;
 
         this.snapshotLoader = loaderFactory.newLoader(locale.createSnapshotProgress());
     }
@@ -156,78 +163,6 @@ public class WorkspaceEventsNotifier {
 
         if (wsAgentLogSubscriptionHandler == null && workspace.getRuntime() != null) {
             subscribeOnWsAgentOutputChannel(workspace, getDevMachineName(workspace));
-        }
-    }
-
-    private void subscribeToWorkspaceStatusEvents(final WorkspaceDto workspace) {
-        Unmarshallable<WorkspaceStatusEvent> unmarshaller = dtoUnmarshallerFactory.newWSUnmarshaller(WorkspaceStatusEvent.class);
-        final Link workspaceEventsLink = workspace.getLink(LINK_REL_GET_WORKSPACE_EVENTS_CHANNEL);
-        if (workspaceEventsLink == null) {
-            //should never be
-            notificationManager.notify(locale.workspaceSubscribeOnEventsFailed(), FAIL, EMERGE_MODE);
-            Log.error(getClass(), "Link " + LINK_REL_GET_WORKSPACE_EVENTS_CHANNEL + " not found in workspace links. So events will be not handle");
-            return;
-        }
-        final String channel = workspaceEventsLink.getParameter("channel").getDefaultValue();
-        if (isNullOrEmpty(channel)) {
-            //should never be
-            notificationManager.notify(locale.workspaceSubscribeOnEventsFailed(), FAIL, EMERGE_MODE);
-            Log.error(getClass(), "Channel for handling Workspace events not provide. So events will be not handle");
-            return;
-        }
-
-        try {
-            messageBus.subscribe(channel, new SubscriptionHandler<WorkspaceStatusEvent>(unmarshaller) {
-                @Override
-                protected void onMessageReceived(WorkspaceStatusEvent statusEvent) {
-                    switch (statusEvent.getEventType()) {
-                        case STARTING:
-                            onWorkspaceStarting(workspace.getId());
-                            break;
-                        case RUNNING:
-                            onWorkspaceStarted(workspace.getId());
-                            break;
-                        case ERROR:
-                            unSubscribeFromChannel(channel, this);
-                            unSubscribeHandlers();
-
-                            notificationManager.notify(locale.workspaceStartFailed(), FAIL, FLOAT_MODE);
-                            initialLoadingInfo.setOperationStatus(WORKSPACE_BOOTING.getValue(), ERROR);
-
-                            final String workspaceName = workspace.getConfig().getName();
-                            final String error = statusEvent.getError();
-                            workspaceServiceClient.getWorkspaces(SKIP_COUNT, MAX_COUNT).then(showErrorDialog(workspaceName, error));
-
-                            eventBus.fireEvent(new WorkspaceStoppedEvent(workspace));
-                            break;
-                        case STOPPED:
-                            unSubscribeFromChannel(channel, this);
-                            unSubscribeHandlers();
-
-                            notificationManager.notify(locale.extServerStopped(), StatusNotification.Status.SUCCESS, FLOAT_MODE);
-                            eventBus.fireEvent(new WorkspaceStoppedEvent(workspace));
-                            break;
-                        case SNAPSHOT_CREATING:
-                            snapshotLoader.show();
-                            break;
-                        case SNAPSHOT_CREATED:
-                            snapshotLoader.hide();
-                            snapshotCreator.successfullyCreated();
-                            break;
-                        case SNAPSHOT_CREATION_ERROR:
-                            snapshotLoader.hide();
-                            snapshotCreator.creationError("Snapshot creation error: " + statusEvent.getError());
-                            break;
-                    }
-                }
-
-                @Override
-                protected void onErrorReceived(Throwable exception) {
-                    notificationManager.notify(exception.getMessage(), FAIL, NOT_EMERGE_MODE);
-                }
-            });
-        } catch (WebSocketException exception) {
-            Log.error(getClass(), exception);
         }
     }
 
@@ -261,6 +196,31 @@ public class WorkspaceEventsNotifier {
         });
     }
 
+    private void subscribeToWorkspaceStatusEvents(final WorkspaceDto workspace) {
+        final Link workspaceEventsLink = workspace.getLink(LINK_REL_GET_WORKSPACE_EVENTS_CHANNEL);
+        if (workspaceEventsLink == null) {
+            //should never be
+            notificationManager.notify(locale.workspaceSubscribeOnEventsFailed(), FAIL, EMERGE_MODE);
+            Log.error(getClass(),
+                      "Link " + LINK_REL_GET_WORKSPACE_EVENTS_CHANNEL + " not found in workspace links. So events will be not handle");
+            return;
+        }
+        workspaceStatusChannel = workspaceEventsLink.getParameter("channel").getDefaultValue();
+        if (isNullOrEmpty(workspaceStatusChannel)) {
+            //should never be
+            notificationManager.notify(locale.workspaceSubscribeOnEventsFailed(), FAIL, EMERGE_MODE);
+            Log.error(getClass(), "Channel for handling Workspace events not provide. So events will be not handle");
+            return;
+        }
+
+        try {
+            workspaceStatusSubscriptionHandler = new WorkspaceStatusSubscriptionHandler(workspace);
+            messageBus.subscribe(workspaceStatusChannel, workspaceStatusSubscriptionHandler);
+        } catch (WebSocketException exception) {
+            Log.error(getClass(), exception);
+        }
+    }
+
     private void subscribeOnEnvironmentOutputChannel(WorkspaceDto workspace) {
         final Link link = workspace.getLink(LINK_REL_ENVIRONMENT_OUTPUT_CHANNEL);
         final LinkParameter logsChannelLinkParameter = link.getParameter("channel");
@@ -269,19 +229,7 @@ public class WorkspaceEventsNotifier {
         }
 
         environmentOutputChannel = logsChannelLinkParameter.getDefaultValue();
-        final Unmarshallable<MachineLogMessageDto> machineLogMessageDtoUnmarshallable =
-                dtoUnmarshallerFactory.newWSUnmarshaller(MachineLogMessageDto.class);
-        environmentOutputSubscriptionHandler = new SubscriptionHandler<MachineLogMessageDto>(machineLogMessageDtoUnmarshallable) {
-            @Override
-            protected void onMessageReceived(MachineLogMessageDto machineLogMessageDto) {
-                eventBus.fireEvent(new EnvironmentOutputEvent(machineLogMessageDto.getContent(), machineLogMessageDto.getMachineName()));
-            }
-
-            @Override
-            protected void onErrorReceived(Throwable exception) {
-                Log.error(WorkspaceComponent.class, exception);
-            }
-        };
+        environmentOutputSubscriptionHandler = new EnvironmentOutputSubscriptionHandler();
         subscribeToChannel(environmentOutputChannel, environmentOutputSubscriptionHandler);
     }
 
@@ -293,37 +241,13 @@ public class WorkspaceEventsNotifier {
         }
 
         environmentStatusChannel = statusChannelLinkParameter.getDefaultValue();
-        final Unmarshallable<MachineStatusEvent> machineStatusEventUnmarshallable =
-                dtoUnmarshallerFactory.newWSUnmarshaller(MachineStatusEvent.class);
-        statusEventSubscriptionHandler = new SubscriptionHandler<MachineStatusEvent>(machineStatusEventUnmarshallable) {
-            @Override
-            protected void onMessageReceived(MachineStatusEvent machineStatusEvent) {
-                EnvironmentStatusChangedEvent environmentStatusChangedEvent = new EnvironmentStatusChangedEvent(machineStatusEvent);
-                eventBus.fireEvent(environmentStatusChangedEvent);
-
-            }
-
-            @Override
-            protected void onErrorReceived(Throwable exception) {
-                Log.error(WorkspaceComponent.class, exception);
-            }
-        };
-        subscribeToChannel(environmentStatusChannel, statusEventSubscriptionHandler);
+        environmentStatusSubscriptionHandler = new EnvironmentStatusSubscriptionHandler();
+        subscribeToChannel(environmentStatusChannel, environmentStatusSubscriptionHandler);
     }
 
     private void subscribeOnWsAgentOutputChannel(final WorkspaceDto workspace, final String wsMachineName) {
         wsAgentLogChannel = "workspace:" + workspace.getId() + ":ext-server:output";
-        wsAgentLogSubscriptionHandler = new SubscriptionHandler<String>(new OutputMessageUnmarshaller()) {
-            @Override
-            protected void onMessageReceived(String wsAgentLog) {
-                eventBus.fireEvent(new EnvironmentOutputEvent(wsAgentLog, wsMachineName));
-            }
-
-            @Override
-            protected void onErrorReceived(Throwable exception) {
-                Log.error(WorkspaceComponent.class, exception);
-            }
-        };
+        wsAgentLogSubscriptionHandler = new WsAgentOutputSubscriptionHandler(wsMachineName);
         subscribeToChannel(wsAgentLogChannel, wsAgentLogSubscriptionHandler);
     }
 
@@ -344,7 +268,7 @@ public class WorkspaceEventsNotifier {
     }
 
     private void unSubscribeHandlers() {
-        unSubscribeFromChannel(environmentStatusChannel, statusEventSubscriptionHandler);
+        unSubscribeFromChannel(environmentStatusChannel, environmentStatusSubscriptionHandler);
         unSubscribeFromChannel(environmentOutputChannel, environmentOutputSubscriptionHandler);
         unSubscribeFromChannel(wsAgentLogChannel, wsAgentLogSubscriptionHandler);
     }
@@ -378,5 +302,119 @@ public class WorkspaceEventsNotifier {
                                                   }).show();
             }
         };
+    }
+
+    @VisibleForTesting
+    protected class WorkspaceStatusSubscriptionHandler extends SubscriptionHandler<WorkspaceStatusEvent> {
+        private final WorkspaceDto workspace;
+
+        public WorkspaceStatusSubscriptionHandler(final WorkspaceDto workspace) {
+            super(dtoUnmarshallerFactory.newWSUnmarshaller(WorkspaceStatusEvent.class));
+            this.workspace = workspace;
+        }
+
+        @Override
+        protected void onMessageReceived(WorkspaceStatusEvent statusEvent) {
+            final String workspaceId = statusEvent.getWorkspaceId();
+            switch (statusEvent.getEventType()) {
+                case STARTING:
+                    onWorkspaceStarting(workspaceId);
+                    break;
+                case RUNNING:
+                    onWorkspaceStarted(workspaceId);
+                    break;
+                case ERROR:
+                    unSubscribeFromChannel(workspaceStatusChannel, this);
+                    unSubscribeHandlers();
+
+                    notificationManager.notify(locale.workspaceStartFailed(), FAIL, FLOAT_MODE);
+                    initialLoadingInfo.setOperationStatus(WORKSPACE_BOOTING.getValue(), ERROR);
+
+                    final String workspaceName = workspace.getConfig().getName();
+                    final String error = statusEvent.getError();
+                    workspaceServiceClient.getWorkspaces(SKIP_COUNT, MAX_COUNT).then(showErrorDialog(workspaceName, error));
+
+                    eventBus.fireEvent(new WorkspaceStoppedEvent(workspace));
+                    break;
+                case STOPPED:
+                    unSubscribeFromChannel(workspaceStatusChannel, this);
+                    unSubscribeHandlers();
+
+                    notificationManager.notify(locale.extServerStopped(), StatusNotification.Status.SUCCESS, FLOAT_MODE);
+                    eventBus.fireEvent(new WorkspaceStoppedEvent(workspace));
+                    break;
+                case SNAPSHOT_CREATING:
+                    snapshotLoader.show();
+                    break;
+                case SNAPSHOT_CREATED:
+                    snapshotLoader.hide();
+                    snapshotCreator.successfullyCreated();
+                    break;
+                case SNAPSHOT_CREATION_ERROR:
+                    snapshotLoader.hide();
+                    snapshotCreator.creationError("Snapshot creation error: " + statusEvent.getError());
+                    break;
+            }
+        }
+
+        @Override
+        protected void onErrorReceived(Throwable exception) {
+            notificationManager.notify(exception.getMessage(), FAIL, NOT_EMERGE_MODE);
+        }
+    }
+
+    @VisibleForTesting
+    protected class WsAgentOutputSubscriptionHandler extends SubscriptionHandler<String> {
+        private final String wsMachineName;
+
+        public WsAgentOutputSubscriptionHandler(final String wsMachineName) {
+            super(new OutputMessageUnmarshaller());
+            this.wsMachineName = wsMachineName;
+        }
+
+        @Override
+        protected void onMessageReceived(String wsAgentLog) {
+            eventBus.fireEvent(new EnvironmentOutputEvent(wsAgentLog, wsMachineName));
+        }
+
+        @Override
+        protected void onErrorReceived(Throwable exception) {
+            Log.error(WorkspaceEventsNotifier.class, exception);
+        }
+    }
+
+    @VisibleForTesting
+    protected class EnvironmentStatusSubscriptionHandler extends SubscriptionHandler<MachineStatusEvent> {
+        public EnvironmentStatusSubscriptionHandler() {
+            super(dtoUnmarshallerFactory.newWSUnmarshaller(MachineStatusEvent.class));
+        }
+
+        @Override
+        protected void onMessageReceived(MachineStatusEvent machineStatusEvent) {
+            EnvironmentStatusChangedEvent environmentStatusChangedEvent = new EnvironmentStatusChangedEvent(machineStatusEvent);
+            eventBus.fireEvent(environmentStatusChangedEvent);
+        }
+
+        @Override
+        protected void onErrorReceived(Throwable exception) {
+            Log.error(WorkspaceEventsNotifier.class, exception);
+        }
+    }
+
+    @VisibleForTesting
+    protected class EnvironmentOutputSubscriptionHandler extends SubscriptionHandler<MachineLogMessageDto> {
+        public EnvironmentOutputSubscriptionHandler() {
+            super(dtoUnmarshallerFactory.newWSUnmarshaller(MachineLogMessageDto.class));
+        }
+
+        @Override
+        protected void onMessageReceived(MachineLogMessageDto machineLogMessageDto) {
+            eventBus.fireEvent(new EnvironmentOutputEvent(machineLogMessageDto.getContent(), machineLogMessageDto.getMachineName()));
+        }
+
+        @Override
+        protected void onErrorReceived(Throwable exception) {
+            Log.error(WorkspaceEventsNotifier.class, exception);
+        }
     }
 }
