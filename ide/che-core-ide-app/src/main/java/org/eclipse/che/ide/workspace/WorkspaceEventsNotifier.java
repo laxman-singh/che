@@ -268,6 +268,7 @@ public class WorkspaceEventsNotifier {
     }
 
     private void unSubscribeHandlers() {
+        unSubscribeFromChannel(workspaceStatusChannel, workspaceStatusSubscriptionHandler);
         unSubscribeFromChannel(environmentStatusChannel, environmentStatusSubscriptionHandler);
         unSubscribeFromChannel(environmentOutputChannel, environmentOutputSubscriptionHandler);
         unSubscribeFromChannel(wsAgentLogChannel, wsAgentLogSubscriptionHandler);
@@ -324,7 +325,6 @@ public class WorkspaceEventsNotifier {
                     onWorkspaceStarted(workspaceId);
                     break;
                 case ERROR:
-                    unSubscribeFromChannel(workspaceStatusChannel, this);
                     unSubscribeHandlers();
 
                     notificationManager.notify(locale.workspaceStartFailed(), FAIL, FLOAT_MODE);
@@ -337,7 +337,6 @@ public class WorkspaceEventsNotifier {
                     eventBus.fireEvent(new WorkspaceStoppedEvent(workspace));
                     break;
                 case STOPPED:
-                    unSubscribeFromChannel(workspaceStatusChannel, this);
                     unSubscribeHandlers();
 
                     notificationManager.notify(locale.extServerStopped(), StatusNotification.Status.SUCCESS, FLOAT_MODE);
